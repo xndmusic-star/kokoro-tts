@@ -1,0 +1,33 @@
+services:
+  kokoro-tts:
+    build: .
+    image: neosun/kokoro-tts:latest
+    container_name: kokoro-tts
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:${PORT:-8300}:8300"
+    environment:
+      - PORT=8300
+      - GPU_IDLE_TIMEOUT=${GPU_IDLE_TIMEOUT:-300}
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      - HF_HOME=/tmp/kokoro/cache
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-hexgrad/Kokoro-82M}
+    volumes:
+      - ./output:/tmp/kokoro/output
+      - kokoro-cache:/tmp/kokoro/cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8300/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  kokoro-cache:
