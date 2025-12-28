@@ -250,6 +250,7 @@ try{const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'appli
 
 async function streamAudio(){
 if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:24000});
+if(audioCtx.state==='suspended')await audioCtx.resume();
 const sb=document.getElementById('stream-btn'),xb=document.getElementById('stop-btn'),st=document.getElementById('stream-status'),mp=document.getElementById('stream-metrics'),ms=document.getElementById('m-status');
 sb.style.display='none';xb.style.display='inline-flex';st.textContent='Connecting...';st.className='stream-status active';
 mp.style.display='block';ms.textContent='⏳ 正在连接...';ms.className='metric-status streaming';

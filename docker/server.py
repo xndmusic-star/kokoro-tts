@@ -198,11 +198,12 @@ async def api_tts_base64(req: TTSRequest):
 # ---------- Streaming TTS ----------
 @app.post("/api/tts/stream", tags=["TTS"])
 async def api_tts_stream(req: TTSRequest):
-    """Stream audio chunks as they are generated"""
+    """Stream audio chunks as they are generated (sentence by sentence)"""
     async def generate() -> AsyncGenerator[bytes, None]:
         lang_code = req.voice[0] if req.voice else 'a'
         pipeline = gpu_manager.get_pipeline(lang_code, req.model)
-        for result in pipeline(req.text, voice=req.voice, speed=req.speed):
+        # Split by sentence for faster streaming
+        for result in pipeline(req.text, voice=req.voice, speed=req.speed, split_pattern=r'[.!?。！？]+'):
             if result.audio is not None:
                 chunk = audio_to_wav_bytes(result.audio.cpu().numpy())
                 yield len(chunk).to_bytes(4, 'little') + chunk
@@ -211,7 +212,7 @@ async def api_tts_stream(req: TTSRequest):
         media_type="application/octet-stream",
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no"  # Disable nginx buffering
+            "X-Accel-Buffering": "no"
         }
     )
 
