@@ -88,7 +88,7 @@ footer{text-align:center;padding:30px 0;color:var(--text-muted);font-size:0.8rem
 <body>
 <div class="container">
 <header>
-<div class="logo"><h1>🎙️ Kokoro TTS</h1><span class="version">v1.0.0</span></div>
+<div class="logo"><h1>🎙️ Kokoro TTS</h1><span class="version">v1.1.0</span></div>
 <nav class="nav">
 <a href="/docs">📄 Swagger</a>
 <a href="/redoc">📚 ReDoc</a>
@@ -217,7 +217,7 @@ footer{text-align:center;padding:30px 0;color:var(--text-muted);font-size:0.8rem
 </div>
 </div>
 </div>
-<footer>Kokoro TTS v1.0.0 • All-in-One: REST + WebSocket + Batch + Stream</footer>
+<footer>Kokoro TTS v1.1.0 • All-in-One: REST + WebSocket + Batch + Stream</footer>
 </div>
 <div class="toast" id="toast"></div>
 <script>

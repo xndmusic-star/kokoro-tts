@@ -129,7 +129,7 @@ def audio_to_base64(audio: np.ndarray) -> str:
 # ============== FastAPI App ==============
 app = FastAPI(
     title="Kokoro TTS API",
-    version="1.0.0",
+    version="1.1.0",
     description="All-in-One TTS: REST API + WebSocket + Batch + Streaming"
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -137,7 +137,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 # ---------- Health & Status ----------
 @app.get("/health", tags=["System"])
 async def health():
-    return {"status": "healthy", "version": "1.0.0", "timestamp": datetime.now().isoformat()}
+    return {"status": "healthy", "version": "1.1.0", "timestamp": datetime.now().isoformat()}
 
 @app.get("/api/status", tags=["System"])
 async def api_status():
