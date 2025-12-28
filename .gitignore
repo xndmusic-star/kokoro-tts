@@ -96,3 +96,6 @@ yarn-error.log*
 
 # Jupyter
 .ipynb_checkpoints/
+
+# WeChat article (not for public)
+docs/wechat_article.md
