@@ -55,6 +55,18 @@ class GPUManager:
             "last_used": datetime.fromtimestamp(self.last_used).isoformat() if self.last_used else None,
             "gpu": gpu_info
         }
+    
+    def warmup(self):
+        """Preload default model and voice to reduce first request latency"""
+        print("🔥 Warming up model...")
+        try:
+            pipeline = self.get_pipeline('a', 'hexgrad/Kokoro-82M')
+            # Generate a short audio to fully warm up
+            for _ in pipeline("Hello", voice='af_heart', speed=1.0):
+                pass
+            print("✅ Model warmed up!")
+        except Exception as e:
+            print(f"⚠️ Warmup failed: {e}")
 
 gpu_manager = GPUManager(int(os.environ.get('GPU_IDLE_TIMEOUT', 300)))
 
@@ -326,4 +338,6 @@ if __name__ == '__main__':
         import uvicorn
         port = int(os.environ.get('PORT', 8300))
         print(f"🎙️ Kokoro TTS Server starting on http://0.0.0.0:{port}")
+        # Warmup model in background
+        threading.Thread(target=gpu_manager.warmup, daemon=True).start()
         uvicorn.run(app, host='0.0.0.0', port=port)
