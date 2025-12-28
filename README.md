@@ -250,6 +250,15 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📝 Changelog
 
+### v1.1.0 (2024-12)
+- Stream tab: Added performance metrics panel
+  - Time to First Byte (TTFB)
+  - Time to First Play
+  - Total Time
+  - Data Size
+- Real-time metrics update during streaming
+- Improved UI/UX for streaming experience
+
 ### v1.0.0 (2024-12)
 - Initial release
 - Web UI with 4 tabs (Single, Stream, WebSocket, Batch)

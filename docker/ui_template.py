@@ -66,6 +66,14 @@ audio{width:100%}
 .toast{position:fixed;bottom:20px;right:20px;padding:14px 20px;background:var(--card);border:1px solid var(--border);border-radius:10px;display:none;z-index:1000;font-size:0.85rem}
 .stream-status{font-size:0.75rem;color:var(--text-muted);margin-top:8px;min-height:18px}
 .stream-status.active{color:var(--success)}
+.metrics-panel{margin-top:16px;padding:16px;background:var(--bg);border-radius:12px;border:1px solid var(--border)}
+.metrics-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:640px){.metrics-grid{grid-template-columns:repeat(4,1fr)}}
+.metric-card{background:var(--card);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--border)}
+.metric-label{font-size:0.75rem;color:var(--text-muted);margin-bottom:6px}
+.metric-value{font-size:1.4rem;font-weight:700;color:var(--success)}
+.metric-status{margin-top:12px;padding:12px;background:rgba(16,185,129,0.1);border-radius:8px;text-align:center;font-size:0.85rem;color:var(--success)}
+.metric-status.streaming{background:rgba(139,92,246,0.1);color:var(--primary)}
 .tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)}
 .tab{padding:10px 20px;cursor:pointer;border-bottom:2px solid transparent;font-size:0.85rem;color:var(--text-muted)}
 .tab:hover{color:var(--text)}
@@ -132,6 +140,15 @@ footer{text-align:center;padding:30px 0;color:var(--text-muted);font-size:0.8rem
 <div class="btn-group">
 <button class="btn btn-primary" id="stream-btn" onclick="streamAudio()">📡 Start Stream</button>
 <button class="btn btn-danger" id="stop-btn" onclick="stopStream()" style="display:none">⏹ Stop</button>
+</div>
+<div class="metrics-panel" id="stream-metrics" style="display:none">
+<div class="metrics-grid">
+<div class="metric-card"><div class="metric-label">首字节延迟</div><div class="metric-value" id="m-ttfb">-</div></div>
+<div class="metric-card"><div class="metric-label">开始播放</div><div class="metric-value" id="m-ttfp">-</div></div>
+<div class="metric-card"><div class="metric-label">总时间</div><div class="metric-value" id="m-total">-</div></div>
+<div class="metric-card"><div class="metric-label">数据大小</div><div class="metric-value" id="m-size">-</div></div>
+</div>
+<div class="metric-status" id="m-status"></div>
 </div>
 <div class="stream-status" id="stream-status"></div>
 </div>
@@ -233,14 +250,16 @@ try{const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'appli
 
 async function streamAudio(){
 if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:24000});
-const sb=document.getElementById('stream-btn'),xb=document.getElementById('stop-btn'),st=document.getElementById('stream-status');
+const sb=document.getElementById('stream-btn'),xb=document.getElementById('stop-btn'),st=document.getElementById('stream-status'),mp=document.getElementById('stream-metrics'),ms=document.getElementById('m-status');
 sb.style.display='none';xb.style.display='inline-flex';st.textContent='Connecting...';st.className='stream-status active';
-streamCtrl=new AbortController();let n=0,q=[],playing=false;
-async function playNext(){if(!q.length){playing=false;return;}playing=true;const s=audioCtx.createBufferSource();s.buffer=q.shift();s.connect(audioCtx.destination);s.onended=playNext;s.start();}
+mp.style.display='block';ms.textContent='⏳ 正在连接...';ms.className='metric-status streaming';
+['m-ttfb','m-ttfp','m-total','m-size'].forEach(id=>document.getElementById(id).textContent='-');
+streamCtrl=new AbortController();let n=0,q=[],playing=false,totalBytes=0,startTime=Date.now(),ttfb=0,ttfp=0;
+async function playNext(){if(!q.length){playing=false;return;}playing=true;if(!ttfp){ttfp=(Date.now()-startTime)/1000;document.getElementById('m-ttfp').textContent=ttfp.toFixed(3)+'s';}const s=audioCtx.createBufferSource();s.buffer=q.shift();s.connect(audioCtx.destination);s.onended=playNext;s.start();}
 try{const p={text:document.getElementById('stream-text').value,voice:document.getElementById('stream-voice').value,speed:parseFloat(document.getElementById('stream-speed').value),model:document.getElementById('stream-model').value};const r=await fetch('/api/tts/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p),signal:streamCtrl.signal});if(!r.ok)throw new Error('Error');const rd=r.body.getReader();let buf=new Uint8Array(0);
-while(true){const{done,value}=await rd.read();if(done)break;const nb=new Uint8Array(buf.length+value.length);nb.set(buf);nb.set(value,buf.length);buf=nb;
-while(buf.length>=4){const sz=new DataView(buf.buffer,buf.byteOffset,4).getUint32(0,true);if(buf.length<4+sz)break;const wav=buf.slice(4,4+sz);buf=buf.slice(4+sz);n++;st.textContent=`Chunk ${n}...`;const ab=await audioCtx.decodeAudioData(wav.buffer.slice(wav.byteOffset,wav.byteOffset+wav.byteLength));q.push(ab);if(!playing)playNext();}}
-st.textContent=`Done: ${n} chunks`;showToast('Stream done!','success');}catch(e){if(e.name!=='AbortError'){showToast('Error','error');st.textContent='Error';}else st.textContent='Stopped';}finally{sb.style.display='inline-flex';xb.style.display='none';setTimeout(()=>st.className='stream-status',3000);}updateStatus();
+while(true){const{done,value}=await rd.read();if(done)break;if(!ttfb){ttfb=(Date.now()-startTime)/1000;document.getElementById('m-ttfb').textContent=ttfb.toFixed(3)+'s';}totalBytes+=value.length;document.getElementById('m-size').textContent=(totalBytes/1024).toFixed(0)+' KB';document.getElementById('m-total').textContent=((Date.now()-startTime)/1000).toFixed(2)+'s';const nb=new Uint8Array(buf.length+value.length);nb.set(buf);nb.set(value,buf.length);buf=nb;
+while(buf.length>=4){const sz=new DataView(buf.buffer,buf.byteOffset,4).getUint32(0,true);if(buf.length<4+sz)break;const wav=buf.slice(4,4+sz);buf=buf.slice(4+sz);n++;st.textContent=`Chunk ${n}...`;ms.textContent=`🔊 正在播放... Chunk ${n}`;const ab=await audioCtx.decodeAudioData(wav.buffer.slice(wav.byteOffset,wav.byteOffset+wav.byteLength));q.push(ab);if(!playing)playNext();}}
+const totalTime=((Date.now()-startTime)/1000).toFixed(2);document.getElementById('m-total').textContent=totalTime+'s';st.textContent=`Done: ${n} chunks`;ms.textContent=`✅ 完成！首字节 ${ttfb.toFixed(3)}s`;ms.className='metric-status';showToast('Stream done!','success');}catch(e){if(e.name!=='AbortError'){showToast('Error','error');st.textContent='Error';ms.textContent='❌ 错误';ms.className='metric-status';}else{st.textContent='Stopped';ms.textContent='⏹ 已停止';ms.className='metric-status';}}finally{sb.style.display='inline-flex';xb.style.display='none';setTimeout(()=>st.className='stream-status',3000);}updateStatus();
 }
 function stopStream(){if(streamCtrl){streamCtrl.abort();streamCtrl=null;}if(audioCtx){audioCtx.close();audioCtx=null;}}
 
