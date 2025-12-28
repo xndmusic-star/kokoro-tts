@@ -248,16 +248,26 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing`)
 5. Open a Pull Request
 
+## 📖 Documentation
+
+- [Streaming Optimization Guide](docs/STREAMING_OPTIMIZATION.md) - How we reduced latency from 2s to 100ms
+
 ## 📝 Changelog
 
 ### v1.1.0 (2024-12)
-- Stream tab: Added performance metrics panel
+- ⚡ **Streaming Latency Optimization** - First play time reduced from 2s+ to ~100ms
+  - Split by sentence/clause instead of newline for smaller chunks
+  - Model warmup on startup to eliminate cold start delay
+  - Non-blocking audio decoding in browser
+  - AudioContext auto-resume for browser autoplay policy
+- 📊 **Performance Metrics Panel** in Stream tab
   - Time to First Byte (TTFB)
   - Time to First Play
   - Total Time
   - Data Size
-- Real-time metrics update during streaming
-- Improved UI/UX for streaming experience
+- 🎛️ **UI Improvements**
+  - Added Model/Voice/Speed selectors to Stream, WebSocket, Batch tabs
+  - Real-time metrics update during streaming
 
 ### v1.0.0 (2024-12)
 - Initial release
