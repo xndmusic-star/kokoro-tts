@@ -206,7 +206,14 @@ async def api_tts_stream(req: TTSRequest):
             if result.audio is not None:
                 chunk = audio_to_wav_bytes(result.audio.cpu().numpy())
                 yield len(chunk).to_bytes(4, 'little') + chunk
-    return StreamingResponse(generate(), media_type="application/octet-stream")
+    return StreamingResponse(
+        generate(), 
+        media_type="application/octet-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
 
 # ---------- Batch TTS ----------
 @app.post("/api/tts/batch", tags=["TTS"])

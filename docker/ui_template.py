@@ -128,7 +128,7 @@ footer{text-align:center;padding:30px 0;color:var(--text-muted);font-size:0.8rem
 <div id="tab-stream" class="tab-content">
 <div class="card">
 <div class="card-header"><span class="card-title">📡 Streaming TTS</span></div>
-<textarea id="stream-text" placeholder="Enter text for streaming...">This is a streaming test. Audio will play as it generates, sentence by sentence.</textarea>
+<textarea id="stream-text" placeholder="Enter text for streaming (multiple sentences recommended)...">This is the first sentence for streaming. This is the second sentence. And this is the third sentence. The audio will play as each sentence generates.</textarea>
 <div class="controls">
 <div class="control-row">
 <div class="form-group"><label>Model</label><select id="stream-model" onchange="updateStreamVoices()"></select></div>
