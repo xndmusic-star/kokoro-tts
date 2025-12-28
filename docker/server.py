@@ -202,8 +202,8 @@ async def api_tts_stream(req: TTSRequest):
     async def generate() -> AsyncGenerator[bytes, None]:
         lang_code = req.voice[0] if req.voice else 'a'
         pipeline = gpu_manager.get_pipeline(lang_code, req.model)
-        # Split by sentence for faster streaming
-        for result in pipeline(req.text, voice=req.voice, speed=req.speed, split_pattern=r'[.!?。！？]+'):
+        # Split by sentence/clause for faster first chunk
+        for result in pipeline(req.text, voice=req.voice, speed=req.speed, split_pattern=r'[.!?。！？,，;；:：]+'):
             if result.audio is not None:
                 chunk = audio_to_wav_bytes(result.audio.cpu().numpy())
                 yield len(chunk).to_bytes(4, 'little') + chunk
