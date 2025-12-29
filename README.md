@@ -78,6 +78,7 @@ services:
       - "8300:8300"
     environment:
       - GPU_IDLE_TIMEOUT=600
+      - KEEP_MODEL_LOADED=true  # Never release model from memory
     deploy:
       resources:
         reservations:
@@ -111,6 +112,7 @@ curl -X POST http://localhost:8300/api/tts \
 |----------|---------|-------------|
 | `PORT` | `8300` | Server port |
 | `GPU_IDLE_TIMEOUT` | `300` | Seconds before GPU memory release |
+| `KEEP_MODEL_LOADED` | `false` | Never release model from memory (set to `true` for lowest latency) |
 | `NVIDIA_VISIBLE_DEVICES` | `all` | GPU device selection |
 
 ## 📖 Usage
@@ -250,14 +252,26 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📖 Documentation
 
-- [Streaming Optimization Guide](docs/STREAMING_OPTIMIZATION.md) - How we reduced latency from 2s to 100ms
+- [Streaming Optimization Guide](docs/STREAMING_OPTIMIZATION.md) - How we reduced latency from 2s to 50ms
 
 ## 📝 Changelog
+
+### v1.1.1 (2025-01) - 🔒 Keep Model Loaded
+
+**🆕 New Features**
+- Added `KEEP_MODEL_LOADED` environment variable
+- When set to `true`, model stays in GPU memory permanently
+- Eliminates cold start delay completely for consistent 51ms TTFB
+
+**📊 Latest Performance (2025-01-29)**
+- Local TTFB: **51-53ms** (stable)
+- Cloudflare TTFB: **138-178ms**
+- First chunk: **54ms, 71.5KB**
 
 ### v1.1.0 (2025-01) - 🚀 Streaming Latency Optimization
 
 **⚡ Major Performance Improvements**
-- **20x faster first play** - Reduced from 2s+ to ~100ms
+- **40x faster first play** - Reduced from 2s+ to ~50ms
 - **6x smaller first chunk** - Reduced from 436KB to 71.5KB
 - **10x faster TTFB** - Reduced from ~500ms to ~50ms (local)
 

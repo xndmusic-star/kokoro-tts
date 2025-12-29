@@ -14,14 +14,17 @@ sys.path.insert(0, '/app')
 
 # ============== GPU Manager ==============
 class GPUManager:
-    def __init__(self, idle_timeout=300):
+    def __init__(self, idle_timeout=300, keep_loaded=False):
         self.idle_timeout = idle_timeout
+        self.keep_loaded = keep_loaded  # Never release model if True
         self.pipelines = {}
         self.last_used = 0
         self.lock = threading.Lock()
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     def _offload(self):
+        if self.keep_loaded:
+            return  # Never offload if keep_loaded is True
         if self.pipelines:
             self.pipelines.clear()
             if torch.cuda.is_available():
@@ -52,6 +55,7 @@ class GPUManager:
         return {
             "device": self.device, "model_loaded": bool(self.pipelines),
             "idle_timeout": self.idle_timeout,
+            "keep_loaded": self.keep_loaded,
             "last_used": datetime.fromtimestamp(self.last_used).isoformat() if self.last_used else None,
             "gpu": gpu_info
         }
@@ -68,7 +72,10 @@ class GPUManager:
         except Exception as e:
             print(f"⚠️ Warmup failed: {e}")
 
-gpu_manager = GPUManager(int(os.environ.get('GPU_IDLE_TIMEOUT', 300)))
+gpu_manager = GPUManager(
+    idle_timeout=int(os.environ.get('GPU_IDLE_TIMEOUT', 300)),
+    keep_loaded=os.environ.get('KEEP_MODEL_LOADED', '').lower() in ('true', '1', 'yes')
+)
 
 # Cleanup thread
 def cleanup_thread():
@@ -141,7 +148,7 @@ def audio_to_base64(audio: np.ndarray) -> str:
 # ============== FastAPI App ==============
 app = FastAPI(
     title="Kokoro TTS API",
-    version="1.1.0",
+    version="1.1.1",
     description="All-in-One TTS: REST API + WebSocket + Batch + Streaming"
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -149,7 +156,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 # ---------- Health & Status ----------
 @app.get("/health", tags=["System"])
 async def health():
-    return {"status": "healthy", "version": "1.1.0", "timestamp": datetime.now().isoformat()}
+    return {"status": "healthy", "version": "1.1.1", "timestamp": datetime.now().isoformat()}
 
 @app.get("/api/status", tags=["System"])
 async def api_status():

@@ -78,6 +78,7 @@ services:
       - "8300:8300"
     environment:
       - GPU_IDLE_TIMEOUT=600
+      - KEEP_MODEL_LOADED=true  # 永不释放模型
     deploy:
       resources:
         reservations:
@@ -111,6 +112,7 @@ curl -X POST http://localhost:8300/api/tts \
 |------|--------|------|
 | `PORT` | `8300` | 服务端口 |
 | `GPU_IDLE_TIMEOUT` | `300` | GPU 空闲释放时间（秒） |
+| `KEEP_MODEL_LOADED` | `false` | 永不释放模型（设为 `true` 获得最低延迟） |
 | `NVIDIA_VISIBLE_DEVICES` | `all` | GPU 设备选择 |
 
 ## 📖 使用方法
@@ -250,14 +252,26 @@ kokoro/
 
 ## 📖 文档
 
-- [流式延迟优化指南](docs/STREAMING_OPTIMIZATION.md) - 如何将延迟从 2s 降低到 100ms
+- [流式延迟优化指南](docs/STREAMING_OPTIMIZATION.md) - 如何将延迟从 2s 降低到 50ms
 
 ## 📝 更新日志
+
+### v1.1.1 (2025-01) - 🔒 模型常驻内存
+
+**🆕 新功能**
+- 新增 `KEEP_MODEL_LOADED` 环境变量
+- 设为 `true` 时，模型永久驻留 GPU 内存
+- 完全消除冷启动延迟，稳定 51ms TTFB
+
+**📊 最新性能数据 (2025-01-29)**
+- 本地 TTFB：**51-53ms**（稳定）
+- Cloudflare TTFB：**138-178ms**
+- 首 Chunk：**54ms, 71.5KB**
 
 ### v1.1.0 (2025-01) - 🚀 流式延迟优化
 
 **⚡ 重大性能提升**
-- **首播速度提升 20 倍** - 从 2s+ 降低到 ~100ms
+- **首播速度提升 40 倍** - 从 2s+ 降低到 ~50ms
 - **首 Chunk 缩小 6 倍** - 从 436KB 降低到 71.5KB
 - **TTFB 提升 10 倍** - 从 ~500ms 降低到 ~50ms（本地）
 
