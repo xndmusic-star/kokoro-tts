@@ -1,0 +1,94 @@
+name: Gerar locucao Kokoro no GitHub
+
+on:
+  workflow_dispatch:
+    inputs:
+      texto:
+        description: "Texto da locucao (ate 700 caracteres; evite informacoes privadas)"
+        required: true
+        type: string
+        default: "Você sabe o que é microfonia? Ela acontece quando o microfone capta o som da caixa, que volta ao microfone e se amplifica em um ciclo."
+      voz:
+        description: "Voz brasileira"
+        required: true
+        type: choice
+        default: pm_alex
+        options:
+          - pm_alex
+          - pm_santa
+          - pf_dora
+      velocidade:
+        description: "Velocidade da fala"
+        required: true
+        type: choice
+        default: "1.0"
+        options:
+          - "0.9"
+          - "1.0"
+          - "1.1"
+
+permissions:
+  contents: read
+
+jobs:
+  locucao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Preparar ambiente Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar voz Kokoro e dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y espeak-ng
+          python -m pip install --upgrade pip
+          python -m pip install "kokoro==0.9.4" "soundfile>=0.12,<1" "numpy>=1.26,<3"
+
+      - name: Gerar WAV em portugues brasileiro
+        env:
+          LOCUCAO_TEXTO: ${{ inputs.texto }}
+          LOCUCAO_VOZ: ${{ inputs.voz }}
+          LOCUCAO_VELOCIDADE: ${{ inputs.velocidade }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import numpy as np
+          import soundfile as sf
+          from kokoro import KPipeline
+
+          text = os.environ["LOCUCAO_TEXTO"].strip()
+          voice = os.environ["LOCUCAO_VOZ"]
+          speed = float(os.environ["LOCUCAO_VELOCIDADE"])
+          if not text or len(text) > 700:
+              raise ValueError("O texto precisa ter de 1 a 700 caracteres.")
+          if voice not in ("pm_alex", "pm_santa", "pf_dora"):
+              raise ValueError("Voz invalida.")
+
+          pipeline = KPipeline(lang_code="p", device="cpu")
+          audio_parts = []
+          for sentence in re.split(r"(?<=[.!?;:])\s+|\n+", text):
+              if not sentence.strip():
+                  continue
+              for item in pipeline(sentence.strip(), voice=voice, speed=speed):
+                  wav = item.audio
+                  if wav is not None:
+                      if hasattr(wav, "detach"):
+                          wav = wav.detach().cpu().numpy()
+                      audio_parts.append(np.asarray(wav, dtype=np.float32))
+          if not audio_parts:
+              raise RuntimeError("Nao foi possivel gerar audio.")
+          sf.write("xandao-locucao.wav", np.concatenate(audio_parts), 24000)
+          print("Locucao WAV gerada com sucesso.")
+          PY
+
+      - name: Disponibilizar arquivo para baixar
+        uses: actions/upload-artifact@v4
+        with:
+          name: xandao-locucao-wav
+          path: xandao-locucao.wav
+          retention-days: 7
+          if-no-files-found: error
