@@ -11,13 +11,21 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ secrets.HF_TOKEN != '' && secrets.HF_SPACE_ID != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: python -m pip install --upgrade 'huggingface_hub>=0.34,<2'
+      - name: Verificar configuracao do Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_ID: ${{ secrets.HF_SPACE_ID }}
+        run: |
+          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE_ID" ]; then
+            echo "Configure os secrets HF_TOKEN e HF_SPACE_ID em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
       - name: Sincronizar arquivos para Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
